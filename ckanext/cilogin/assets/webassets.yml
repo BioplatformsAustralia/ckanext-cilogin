@@ -1,0 +1,14 @@
+# cilogin-js:
+#   filter: rjsmin
+#   output: ckanext-cilogin/%(version)s-cilogin.js
+#   contents:
+#     - js/cilogin.js
+#   extra:
+#     preload:
+#       - base/main
+
+# cilogin-css:
+#   filter: cssrewrite
+#   output: ckanext-cilogin/%(version)s-cilogin.css
+#   contents:
+#     - css/cilogin.css
