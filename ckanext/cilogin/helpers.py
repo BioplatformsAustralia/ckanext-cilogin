@@ -100,7 +100,6 @@ def _update_or_create_token(base_url, cilogon_user_id, cilogon_token_dict, token
     cilogon_token_dict.get("Passwords")[0]["Password"] = token
     cilogon_token_dict.get("Passwords")[0]["Person"]["Id"] = cilogon_user_id
     cilogon_token_dict.get("Passwords")[0]["PasswordAuthenticatorId"] = password_authenticator
-    breakpoint()
     data = json.dumps(cilogon_token_dict)
     try:
         response = requests.post(url=token_url, auth=(username, password), data=data)
@@ -114,7 +113,6 @@ def _update_or_create_token(base_url, cilogon_user_id, cilogon_token_dict, token
 
 
 def _compare_tokens(cilogon_token, token):
-    breakpoint()
     jti = None
     if isinstance(token, dict):
         jti = encode(token)
