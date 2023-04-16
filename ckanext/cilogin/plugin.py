@@ -1,9 +1,15 @@
+import logging
+
+import ckan.model as model
 import ckan.plugins as plugins
 import ckan.plugins.toolkit as tk
 from ckan.lib.api_token import decode, encode
 from ckanext.saml2auth.interfaces import ISaml2Auth
 
 from ckanext.cilogin import helpers as helpers
+
+log = logging.getLogger(__name__)
+
 
 class CiloginPlugin(plugins.SingletonPlugin):
     plugins.implements(plugins.IConfigurer)
@@ -17,7 +23,44 @@ class CiloginPlugin(plugins.SingletonPlugin):
         tk.add_public_directory(config_, "public")
         tk.add_resource("assets", "cilogin")
 
-    # ISaml2Auth 
+    # ISaml2Auth
+    def before_saml2_user_create(self, resp, saml_attributes):
+        print("****************************")
+        print(resp)
+        print("*****************************")
+        print(saml_attributes)
+        context = {
+                "model": model,
+                "user": resp.get('name'),
+                "ignore_auth": True
+
+                }
+        memberships = saml_attributes.get('isMemberOf',[])
+        for membership in memberships:
+            if 'bpadp' in membership:
+                prefix, group, role = membership.split(':')
+                group_dict = None
+                try:
+                    group_dict = tk.get_action('organization_show')(context,{"id": group})
+                except Exception as e:
+                    log.error("Group not found")
+                    print(e)
+
+                print("****************GROUP***********************")
+                print("============================================")
+                print(group_dict)
+                if group_dict:
+                    try:
+                        data_dict = {
+                            "id": group_dict.get('name'),
+                            'username': resp.get('user'),
+                            'role':role
+                            }
+                        result = tk.get_action('organization_member_create')(context,data_dict)
+                    except Exception as e:
+                        log.error("Error occured")
+
+
     def after_saml2_login(self, resp, saml_attributes):
         if tk.g.userobj.email in saml_attributes.get("mail"):
             # check if there is a API token for this user
