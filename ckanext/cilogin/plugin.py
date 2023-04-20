@@ -59,7 +59,8 @@ class CiloginPlugin(plugins.SingletonPlugin):
                             }
                         result = tk.get_action('organization_member_create')(context,data_dict)
                     except Exception as e:
-                        log.error("Error occured")
+                        log.error("Error adding user to group")
+                        log.error(e)
             else:
                 log.info("Not a BPADP group in the membership list")
 
