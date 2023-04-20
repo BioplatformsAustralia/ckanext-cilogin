@@ -23,47 +23,6 @@ class CiloginPlugin(plugins.SingletonPlugin):
         tk.add_public_directory(config_, "public")
         tk.add_resource("assets", "cilogin")
 
-    # ISaml2Auth
-    def before_saml2_user_create(self, resp, saml_attributes):
-        print("****************************")
-        print(resp)
-        print("*****************************")
-        print(saml_attributes)
-        context = {
-                "model": model,
-                "user": resp.get('name'),
-                "ignore_auth": True
-
-                }
-        memberships = saml_attributes.get('isMemberOf',[])
-
-        for membership in memberships:
-            if 'bpadp' in membership:
-                prefix, group, role = membership.split(':')
-                group_dict = None
-                try:
-                    group_dict = tk.get_action('organization_show')(context,{"id": group})
-                except Exception as e:
-                    log.error("Group not found")
-                    print(e)
-
-                print("****************GROUP***********************")
-                print("============================================")
-                print(group_dict)
-                if group_dict:
-                    try:
-                        data_dict = {
-                            "id": group_dict.get('name'),
-                            'username': resp.get('user'),
-                            'role':role
-                            }
-                        result = tk.get_action('organization_member_create')(context,data_dict)
-                    except Exception as e:
-                        log.error("Error adding user to group")
-                        log.error(e)
-            else:
-                log.info("Not a BPADP group in the membership list")
-
 
     def after_saml2_login(self, resp, saml_attributes):
         if tk.g.userobj.email in saml_attributes.get("mail"):
@@ -82,6 +41,9 @@ class CiloginPlugin(plugins.SingletonPlugin):
             
             if token:
                 helpers.process_token(user, token)
+        
+            # Update memberships
+            _update_memberships(user, saml_attributes)
         return resp
 
 def _create_user_token(user):
@@ -90,3 +52,37 @@ def _create_user_token(user):
         {u"user": user.get("name"), u"name": "ci_login"},
     )
     return token.get('token')
+
+def _update_memberships(user, saml_attributes):
+    context = {
+            "model": model,
+            "user": user.get("name"),
+            "ignore_auth": True
+
+            }
+    memberships = saml_attributes.get('isMemberOf',[])
+
+    for membership in memberships:
+        if 'bpadp' in membership:
+            prefix, group, role = membership.split(':')
+            group_dict = None
+            try:
+                group_dict = tk.get_action('organization_show')(context,{"id": group})
+            except Exception as e:
+                log.error("Error getting group")
+                log.error(e)
+            if group_dict:
+                try:
+                    data_dict = {
+                        "id": group_dict.get('name'),
+                        'username': user.get("name"),
+                        'role':role.lower()
+                        }
+                    log.info("Adding user to group")
+                    result = tk.get_action('organization_member_create')(context,data_dict)
+                    log.info(result)
+                except Exception as e:
+                    log.error("Error adding user to group")
+                    log.error(e)
+        else:
+            log.info("Not a BPADP group in the membership list")
