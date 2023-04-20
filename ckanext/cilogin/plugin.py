@@ -36,6 +36,7 @@ class CiloginPlugin(plugins.SingletonPlugin):
 
                 }
         memberships = saml_attributes.get('isMemberOf',[])
+
         for membership in memberships:
             if 'bpadp' in membership:
                 prefix, group, role = membership.split(':')
@@ -59,6 +60,8 @@ class CiloginPlugin(plugins.SingletonPlugin):
                         result = tk.get_action('organization_member_create')(context,data_dict)
                     except Exception as e:
                         log.error("Error occured")
+            else:
+                log.info("Not a BPADP group in the membership list")
 
 
     def after_saml2_login(self, resp, saml_attributes):
