@@ -61,7 +61,13 @@ def _update_memberships(user, saml_attributes):
 
             }
     memberships = saml_attributes.get('isMemberOf',[])
+    
+    add_membership(context, user, memberships)
+    remove_membership(context, user, memberships)
 
+
+
+def add_membership(context, user, memberships):
     for membership in memberships:
         if 'bpadp' in membership:
             prefix, group, role = membership.split(':')
@@ -86,3 +92,28 @@ def _update_memberships(user, saml_attributes):
                     log.error(e)
         else:
             log.info("Not a BPADP group in the membership list")
+
+def remove_membership(context, user, memberships):
+    # Get all groups the user is a member of
+    groups = []
+    breakpoint()
+    for membership in memberships:
+        if 'bpadp' in membership:
+            prefix, group, role = membership.split(':')
+            groups.append(group)
+    user_groups = tk.get_action('organization_list_for_user')(context,{"id": user.get("name")})
+    for group in user_groups:
+        if group.get('name') not in groups:
+            try:
+                data_dict = {
+                    "id": group.get('name'),
+                    'username': user.get("name"),
+                    }
+                log.info("Removing user from group")
+                result = tk.get_action('organization_member_delete')(context,data_dict)
+                log.info(result)
+            except Exception as e:
+                log.error("Error removing user from group")
+                log.error(e)
+        else:
+            log.info("User is a member of this group")
