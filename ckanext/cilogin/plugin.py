@@ -96,7 +96,7 @@ def add_membership(context, user, memberships):
 def remove_membership(context, user, memberships):
     # Get all groups the user is a member of
     groups = []
-    breakpoint()
+    site_user = tk.get_action('get_site_user')({'ignore_auth': True},{})
     for membership in memberships:
         if 'bpadp' in membership:
             prefix, group, role = membership.split(':')
@@ -110,7 +110,7 @@ def remove_membership(context, user, memberships):
                     'username': user.get("name"),
                     }
                 log.info("Removing user from group")
-                result = tk.get_action('organization_member_delete')(context,data_dict)
+                result = tk.get_action('organization_member_delete')({'user': site_user['name']},data_dict)
                 log.info(result)
             except Exception as e:
                 log.error("Error removing user from group")
