@@ -31,12 +31,12 @@ class CiloginPlugin(plugins.SingletonPlugin):
             tokens = tk.get_action(u"api_token_list")(
                 {u"ignore_auth": True}, {u"user": user.get("name")})
             token = None
-            if not tokens:
+            if not tokens or "ci_login" not in [token.get("name") for token in tokens]:
                 token =_create_user_token(user)
-            else:
-                for token in tokens:
-                    if token.get("name") != "ci_login":
-                        token = _create_user_token(user)
+            # else:
+            #     for token in tokens:
+            #         if token.get("name") != "ci_login":
+            #             token = _create_user_token(user)
             
             
             if token:

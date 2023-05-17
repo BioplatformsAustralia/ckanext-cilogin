@@ -12,24 +12,23 @@ base_url = tk.config.get("ckanext.cilogin.base_url")
 username = tk.config.get("ckanext.cilogin.username")
 password = tk.config.get("ckanext.cilogin.password")
 coid = tk.config.get("ckanext.cilogin.coid")
-password_authenticator = tk.config.get("ckanext.cilogin.password_authenticator", "5")
+password_authenticator = tk.config.get("ckanext.cilogin.password_authenticator", "1")
 
 
 ci_login_dict = {
-  "RequestType":"Passwords",
+  "RequestType":"Jwts",
   "Version":"1.0",
-  "Passwords":
+  "Jwts":
   [
     {
       "Version":"1.0",
-      "PasswordAuthenticatorId": None,
+      "JwtAuthenticatorId": None,
       "Person":
       {
         "Type":"CO",
         "Id": None
       },
-      "Password": None,
-      "PasswordType":"EX"
+      "Jwt": None
     }
   ]
 }
@@ -49,7 +48,7 @@ def process_token(user, token):
         log.error("Could not get token from cilogin")
         return
     # check if the token matches
-    cilogin_token = cilogin_token_dict.get("Passwords")[0].get("Password")
+    cilogin_token = cilogin_token_dict.get("Jwts")[0].get("Jwt")
     if not _compare_tokens(cilogin_token, token):
         log.error("Token does not match")
         _update_or_create_token(base_url, cilogin_user_id, cilogin_token_dict, token)
@@ -75,8 +74,8 @@ def _get_user(base_url,user):
 
 
 def _get_token(base_url, cilogin_user_id, token):
-    token_url = f"{base_url}/password_authenticator/passwords.json"
-    params = {"coid": coid, "copersonid": cilogin_user_id }
+    token_url = f"{base_url}/jwt_authenticator/jwts.json"
+    params = {"copersonid": cilogin_user_id }
     try:
         response = requests.get(url=token_url, auth=(username, password), params=params)
     except Exception as e:
@@ -96,10 +95,10 @@ def _get_token(base_url, cilogin_user_id, token):
 def _update_or_create_token(base_url, cilogin_user_id, cilogin_token_dict, token):
     response = None
     token = six.ensure_str(encode(token)) if isinstance(token, dict) else six.ensure_str(token)
-    token_url = f"{base_url}/password_authenticator/passwords.json"
-    cilogin_token_dict.get("Passwords")[0]["Password"] = token
-    cilogin_token_dict.get("Passwords")[0]["Person"]["Id"] = cilogin_user_id
-    cilogin_token_dict.get("Passwords")[0]["PasswordAuthenticatorId"] = password_authenticator
+    token_url = f"{base_url}/jwt_authenticator/jwts.json"
+    cilogin_token_dict.get("Jwts")[0]["Jwt"] = token
+    cilogin_token_dict.get("Jwts")[0]["Person"]["Id"] = cilogin_user_id
+    cilogin_token_dict.get("Jwts")[0]["JwtAuthenticatorId"] = password_authenticator
     data = json.dumps(cilogin_token_dict)
     try:
         response = requests.post(url=token_url, auth=(username, password), data=data)
@@ -113,7 +112,5 @@ def _update_or_create_token(base_url, cilogin_user_id, cilogin_token_dict, token
 
 
 def _compare_tokens(cilogin_token, token):
-    jti = None
-    if isinstance(token, dict):
-        jti = encode(token)
+    jti = encode(token) if isinstance(token, dict) else None
     return cilogin_token == token or cilogin_token == jti
